@@ -1,3 +1,10 @@
+ve.ui.MWLinkAction.prototype.open = function () { this.surface.execute( 'window', 'open', 'smw-property-annotation', null ); }
+ve.ui.ContextItem.prototype.onEditButtonClick = function(){alert('This functionality is still in development');};
+ve.ui.MWInternalLinkContextItem.prototype.renderBody = function () {
+	var	$wrapper = $( '<div>Still in development</div>' );
+	this.$body.empty().append( $wrapper );
+};
+ 
 importScript( 'User:Nischayn22/shortcut.js' );
 //alert("This is to check if the right version of the script is loaded. version - 0.5.5");
  
@@ -236,12 +243,29 @@ ve.ui.SMWAnnotationDialog.static.actions = [
 		'label': mw.msg( 've-SMWAnnotationDialog-insert' ),
 		'flags': [ 'constructive' ],
 		'modes': 'insert'
+	},
+	{
+		label: OO.ui.deferMsg( 'visualeditor-dialog-action-cancel' ),
+		flags: 'safe'
 	}
 ];
  
+ve.ui.SMWAnnotationDialog.prototype.getSetupProcess = function( data ) {
+	return ve.ui.SMWAnnotationDialog.super.prototype.getSetupProcess.call( this, data )
+		.next(function(){
+			var surfaceModel = ve.init.target.getSurface().getModel();
+			var selectedText = surfaceModel.getFragment().getText();
+			this.pageInput.setValue(selectedText);
+		}, this);
+}
+ve.ui.SMWAnnotationDialog.prototype.getTeardownProcess = function( data ) {
+	return ve.ui.SMWAnnotationDialog.super.prototype.getTeardownProcess.call( this, data )
+		.first(function(){
+			this.pageInput.setValue('');
+		}, this);
+}
+ 
 ve.ui.SMWAnnotationDialog.prototype.initialize = function () {
-	var surfaceModel = ve.init.target.getSurface().getModel();
-	var selectedText = surfaceModel.getFragment().getText();
 	ve.ui.SMWAnnotationDialog.super.prototype.initialize.call( this );
 	this.panel = new OO.ui.PanelLayout( { '$': this.$, 'scrollable': true, 'padded': true } );
 	this.inputsFieldset = new OO.ui.FieldsetLayout( {
@@ -258,10 +282,9 @@ ve.ui.SMWAnnotationDialog.prototype.initialize = function () {
  
 	// input from
 	this.pageInput = new ve.ui.MWLinkTargetInputWidget(
-		{ '$': this.$, 'multiline': false , 'placeholder': selectedText}
+		{ '$': this.$, 'multiline': false }
 	);
 	this.pageInput.$element.find('input').attr( 'id','smw-page-input' );
-	this.pageInput.setValue(selectedText);
 	this.pageField = new OO.ui.FieldLayout( this.pageInput, {
 		'$': this.$,
 		'label': mw.msg( 've-SMWAnnotationDialog-page-label' )
@@ -278,7 +301,11 @@ ve.ui.SMWAnnotationDialog.prototype.initialize = function () {
 	this.panel.$element.append(	this.inputsFieldset.$element );
 	this.$body.append( this.panel.$element );
 };
-ve.ui.SMWAnnotationDialog.prototype.getReadyProcess = function(){return new OO.ui.Process().next(function(){$('#smw-page-input').focus()});}
+ve.ui.SMWAnnotationDialog.prototype.getReadyProcess = function(){
+	return new OO.ui.Process().next( function(){
+		$('#smw-page-input').focus();
+	});
+}
 ve.ui.windowFactory.register( ve.ui.SMWAnnotationDialog );
  
  
