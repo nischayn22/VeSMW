@@ -1,9 +1,50 @@
-ve.ui.MWLinkAction.prototype.open = function () { this.surface.execute( 'window', 'open', 'smw-property-annotation', null ); }
-ve.ui.ContextItem.prototype.onEditButtonClick = function(){alert('This functionality is still in development');};
-ve.ui.MWInternalLinkContextItem.prototype.renderBody = function () {
-	var	$wrapper = $( '<div>Still in development</div>' );
-	this.$body.empty().append( $wrapper );
+var propertyName = '';
+var valueName = '';
+var model;
+var contextItem;
+ 
+ve.ui.MWLinkAction.prototype.open = function () { 
+	this.surface.execute( 'window', 'open', 'smw-property-annotation', null ); 
+}
+ve.ui.ContextItem.prototype.onEditButtonClick = function(){
+	propertyName = this.model.getAttribute( 'lookupTitle' ).split('::')[0];
+	valueName = this.model.getAttribute( 'lookupTitle' ).split('::')[1];
+	model = this.model;
+	contextItem = this;
+	this.context.getSurface().execute( 'window', 'open', 'smw-property-annotation', null );
 };
+ 
+ve.ui.MWInternalLinkContextItem.prototype.renderBody = function () {
+	var title = this.model.getAttribute( 'lookupTitle' ),
+	htmlDoc = this.context.getSurface().getModel().getDocument().getHtmlDocument();
+	var property = title.split('::')[0];
+	var property_value = title.split('::')[1];
+	var $wrapper = $( '<div>' ),
+		$linkProperty = $( '<a>' )
+			.addClass( 've-ui-mwInternalLinkContextItem-link' )
+			.css( 'display', 'inline-block' )
+			.text( property )
+			.attr( {
+				href: wgArticlePath.replace('$1', 'Property:' + property ),
+				target: '_blank'
+			} ),
+		$linkPropValue = $( '<a>' )
+			.addClass( 've-ui-mwInternalLinkContextItem-link' )
+			.css( 'display', 'inline-block' )
+			.text( property_value )
+			.attr( {
+				href: ve.resolveUrl( property_value, htmlDoc ),
+				target: '_blank'
+			} );
+	$labelProperty = $( '<label>Property:</label>' );
+	$labelPropValue = $( '<label>Link:</label>' );
+	$wrapper.append( $labelPropValue );
+	$wrapper.append( $linkPropValue );
+	$wrapper.append( $( '<br/>' ) );
+	$wrapper.append( $labelProperty );
+	$wrapper.append( $linkProperty );
+	this.$body.empty().append( $wrapper );
+}
  
 importScript( 'User:Nischayn22/shortcut.js' );
 //alert("This is to check if the right version of the script is loaded. version - 0.5.5");
@@ -202,7 +243,12 @@ function addPropertyAnnotation(propertyName, pageName){
 			'lookupTitle': ve.dm.MWInternalLinkAnnotation.static.getLookupTitle( title )
 		}
 	};
-	surfaceModel.getFragment().annotateContent( 'set', 'link/mwInternal', linkAnnotation );
+	if ( model ) {
+		model.element = linkAnnotation;
+		contextItem.renderBody();
+	} else {
+		surfaceModel.getFragment().annotateContent( 'set', 'link/mwInternal', linkAnnotation );
+	}
 }
  
 ve.ui.SMWAnnotationDialog = function( manager, config ) {
@@ -253,15 +299,22 @@ ve.ui.SMWAnnotationDialog.static.actions = [
 ve.ui.SMWAnnotationDialog.prototype.getSetupProcess = function( data ) {
 	return ve.ui.SMWAnnotationDialog.super.prototype.getSetupProcess.call( this, data )
 		.next(function(){
-			var surfaceModel = ve.init.target.getSurface().getModel();
-			var selectedText = surfaceModel.getFragment().getText();
-			this.pageInput.setValue(selectedText);
+			var selectedText = ve.init.target.getSurface().getModel().getFragment().getText();
+			if (selectedText !== '') {
+				this.pageInput.setValue(selectedText);
+			} else if (valueName !== ''){
+				this.pageInput.setValue(valueName);
+			}
+			if (propertyName !== ''){
+				this.propertyInput.setValue(propertyName);
+			}
 		}, this);
 }
 ve.ui.SMWAnnotationDialog.prototype.getTeardownProcess = function( data ) {
 	return ve.ui.SMWAnnotationDialog.super.prototype.getTeardownProcess.call( this, data )
 		.first(function(){
 			this.pageInput.setValue('');
+			this.propertyInput.setValue('');
 		}, this);
 }
  
