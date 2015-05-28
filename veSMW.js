@@ -3,13 +3,19 @@ var valueName = '';
 var model;
 var contextItem;
  
-ve.ui.MWLinkAction.prototype.open = function () { 
+ve.ui.MWLinkAction.prototype.open = function () {
 	this.surface.execute( 'window', 'open', 'smw-property-annotation', null ); 
 }
 ve.ui.ContextItem.prototype.onEditButtonClick = function(){
-	propertyName = this.model.getAttribute( 'lookupTitle' ).split('::')[0];
-	valueName = this.model.getAttribute( 'lookupTitle' ).split('::')[1];
-	model = this.model;
+	var model = this.model;
+	var title = model.getAttribute( 'lookupTitle' );
+	if ( title.indexOf('::') > -1 ) {
+		propertyName = title.split('::')[0];
+		valueName = title.split('::')[1];
+	} else {
+		propertyName = '';	
+		valueName = title;
+	}
 	contextItem = this;
 	this.context.getSurface().execute( 'window', 'open', 'smw-property-annotation', null );
 };
@@ -17,32 +23,44 @@ ve.ui.ContextItem.prototype.onEditButtonClick = function(){
 ve.ui.MWInternalLinkContextItem.prototype.renderBody = function () {
 	var title = this.model.getAttribute( 'lookupTitle' ),
 	htmlDoc = this.context.getSurface().getModel().getDocument().getHtmlDocument();
-	var property = title.split('::')[0];
-	var property_value = title.split('::')[1];
-	var $wrapper = $( '<div>' ),
-		$linkProperty = $( '<a>' )
+	var $wrapper = $( '<div>' );
+	if ( title.indexOf('::') > -1 ) {
+		var property = title.split('::')[0];
+		var property_value = title.split('::')[1];
+		var	$linkProperty = $( '<a>' )
+				.addClass( 've-ui-mwInternalLinkContextItem-link' )
+				.css( 'display', 'inline-block' )
+				.text( property )
+				.attr( {
+					href: wgArticlePath.replace('$1', 'Property:' + property ),
+					target: '_blank'
+				} ),
+			$linkPropValue = $( '<a>' )
+				.addClass( 've-ui-mwInternalLinkContextItem-link' )
+				.css( 'display', 'inline-block' )
+				.text( property_value )
+				.attr( {
+					href: ve.resolveUrl( property_value, htmlDoc ),
+					target: '_blank'
+				} );
+		$labelProperty = $( '<label>Property:</label>' );
+		$labelPropValue = $( '<label>Link:</label>' );
+		$wrapper.append( $labelPropValue );
+		$wrapper.append( $linkPropValue );
+		$wrapper.append( $( '<br/>' ) );
+		$wrapper.append( $labelProperty );
+		$wrapper.append( $linkProperty );
+	} else {
+		var $linkPropValue = $( '<a>' )
 			.addClass( 've-ui-mwInternalLinkContextItem-link' )
 			.css( 'display', 'inline-block' )
-			.text( property )
+			.text( title )
 			.attr( {
-				href: wgArticlePath.replace('$1', 'Property:' + property ),
-				target: '_blank'
-			} ),
-		$linkPropValue = $( '<a>' )
-			.addClass( 've-ui-mwInternalLinkContextItem-link' )
-			.css( 'display', 'inline-block' )
-			.text( property_value )
-			.attr( {
-				href: ve.resolveUrl( property_value, htmlDoc ),
+				href: ve.resolveUrl( title, htmlDoc ),
 				target: '_blank'
 			} );
-	$labelProperty = $( '<label>Property:</label>' );
-	$labelPropValue = $( '<label>Link:</label>' );
-	$wrapper.append( $labelPropValue );
-	$wrapper.append( $linkPropValue );
-	$wrapper.append( $( '<br/>' ) );
-	$wrapper.append( $labelProperty );
-	$wrapper.append( $linkProperty );
+		$wrapper.append( $linkPropValue );
+	}
 	this.$body.empty().append( $wrapper );
 }
  
@@ -231,8 +249,13 @@ mw.messages.set({
 	});
  
 function addPropertyAnnotation(propertyName, pageName){
-	var surfaceModel = ve.init.target.getSurface().getModel();
-	var title = propertyName + '::' + pageName;
+	var surfaceModel = ve.init.target.getSurface().getModel(),
+	title = '';
+	if (propertyName !== '') {
+		title = propertyName + '::' + pageName;
+	} else {
+		title = pageName;
+	}
 	var linkAnnotation = {
 		'type': 'link/mwInternal',
 		'attributes': {
