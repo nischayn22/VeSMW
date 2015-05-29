@@ -7,7 +7,7 @@ ve.ui.MWLinkAction.prototype.open = function () {
 	this.surface.execute( 'window', 'open', 'smw-property-annotation', null ); 
 }
 ve.ui.ContextItem.prototype.onEditButtonClick = function(){
-	var model = this.model;
+	model = this.model;
 	var title = model.getAttribute( 'lookupTitle' );
 	if ( title.indexOf('::') > -1 ) {
 		propertyName = title.split('::')[0];
